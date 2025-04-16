@@ -1,42 +1,78 @@
 # ProjectScheduleMakespanMinimizer
+## Overview
+This project solves a complex variant of the Job Shop Scheduling Problem using a genetic algorithm. It focuses on scheduling tasks with non-trivial precedence constraints and worker-task assignments, aiming to minimize the makespan (the total time required to complete all tasks).
 
-# What does the application do?
+Unlike traditional job-shop problems, this version supports:
 
-The project schedule makespan minimizer aims to solve a variant of the job-shop scheduling problem using a genetic algorithm. The focus of the project is only the algorithm that will schedule the tasks. The advantage of a genetic algorithm over other approaches is that the constraints of the project can be changed drastically, yet the fundamental principles of the algorithm remain robust. In a genetic algorithm, specific parameters can be changed, but also it can allow the use of different mutation, crossover, fitness, and selection functions, depending on the data. I hypothesize that this adaptability will enable efficient scheduling solutions for real-world projects, even in scenarios where standard approaches would fall short.
+- Arbitrary precedence between tasks (across jobs)
 
-# What is the problem I aimed to solve?
+- Fixed worker-task assignments
 
-The problem has many variations, but a general description of the job-shop scheduling problem can be as follows.
+- Multi-worker tasks (optional feature)
 
-- The inputs for this are a list of jobs and a list of workers.
+## Why Genetic Algorithm?
+Genetic algorithms provide flexibility in tackling NP-hard problems like this. The core GA structure remains adaptable across many problem variations, with tunable components such as:
+- Chromosome representation
+- Mutation function
+- Crossover function
+- Fitness function
+- Selection function
+  
+This makes the solution robust against constraint changes that would break standard schedulers.
 
-- Each job consists of a set of operations that need to be finished in a predefined sequence on certain resources, subject to several constraints.
+## Problem Description
+Given:
 
-- Each worker then can finish the job in a given amount of time that is specified in the input.
+- A set of tasks with arbitrary precedence constraints
 
-- The output of this problem is a schedule of the tasks, assigning tasks for each worker.
+- A set of workers with pre-defined task assignments
 
-The solution can vary, depending on the objective function to be optimized, but it usually is a schedule showing the temporal assignment of operations of orders to the resources to be used. What is different in this project’s problem from the job-shop schedule is that the jobs have a more complex precedence order. Before, a job was a series of operations or tasks, but now the job is only a single task, and the precedence order from the task can extend to other jobs, not as self-contained as within a regular job-shop scheduling problem. This increases the complexity of the problem. Not only that, but the program will also allow the option for two or more workers to work on a single task, unlike the job-shop schedule problem, where there is only one worker per task. This can increase the size of the search space, depending on the input data. The job-shop scheduling problem is known to be NP-hard.
+- Fixed task durations
 
-# How the algorithm works
+- A defined order in which each worker handles their tasks
 
-The algorithm follows the basic concepts of a genetic algorithm, such as population initialization, evaluation (fitness function), selection, crossover, mutation, replacement, and termination.
+The goal is to compute a schedule that minimizes the makespan, while respecting precedence and resource constraints.
 
-- The most distinct step that made the difference between other genetic algorithms was the chromosome representation. A good chromosome representation manages to cover as much search space as possible while avoiding invalid individual generation, which was difficult as the set of tasks needed to satisfy the predecessor order. A good chromosome representation also allows the other functions of the algorithm to compute faster, avoiding unnecessary calculations. For this, I chose to represent the genes as a list of pairs of workers/job. This can't lead to the wrong individual as long as the pairs of workers/jobs are picked from the input. The issue with this approach was that the fitness function was hard to calculate in some situations where a worker had to choose between starting 2 or more jobs at the same time, as the choice could lead to different makespans. This meant I had to calculate all the possibilities before finding the best makespan. I have solved this issue by generating a new list that represents the priority of the jobs; the first jobs in the list will be started first, so the issue where a worker had to choose which job to start first was avoided as the choice was already made. Now the chromosome representation is a list of workers/job assignments, a list representing the job priority, and the fitness value to save computational costs. Still, the list for the job priority could lead to invalid individuals, as the precedence order must be respected. So I generated by abstracting the jobs with their precedence order to a graph with a new node. Start before any task was started, traverse it randomly, and add the jobs in the list in the order of the traversal.
+## How It Works
+Chromosome Representation
+A chromosome consists of:
 
-- I created a new graph data structure to be able to traverse over the jobs in most functions.
+- A list of (worker, job) pairs
 
-- The fitness function was calculated by traversing the graph of the jobs in the order of the job priority list. Then I calculate for each job the finish time, considering when the workers become available to start the task.
+- A job priority list (defines task execution order)
 
-- The mutation function works by choosing a random worker/job pair and substituting it with another from input. Still, the mutation wasn't complete if I didn't also mutate the job priority list to be able to explore the whole search space. I used a swap mutation for this part, but it can lead to invalid individuals, which I fixed by verifying and repairing the chromosome.
+- A cached fitness value
 
-- For the crossover function, I used single-point crossover for both the list of workers/job pairs and the job priority list. The job priority list must be verified and repaired, the same as the mutation function.
+To ensure valid schedules:
 
-- The selection function used was the rank-based selection.
+- The job priority list is generated by traversing a directed acyclic graph of tasks, starting from a dummy "Start" node.
 
-# How to use and test the application
+- Invalid individuals (e.g., those violating precedence) are repaired during mutation/crossover.
 
-There are 2 ways to run the application. The first one is simply to download the dist folder and use the executable; the other is to run the main.py file. There are 2 example projects to be scheduled in the dist/main, and you can use one of them. The project makes use of CSV files to store the inputs, and the program comes with a basic CSV file editor. There you can edit the input in the project configuration, run the algorithm in the algorithm control tab, and see the result in the Gantt chart view.
+## Genetic Algorithm Components
+- Fitness Function: Calculates the makespan by simulating the execution of tasks using worker availability and precedence constraints.
 
-# About this project
-This project was developed as my individual final-yer project in B.Sc. Artificial Intelligence and Computer Science. It was designed and developed from scratch, focusing on solving a real-world variant of the NP-hard Job Shop Schedulling problem using an evolutionary algorithm.
+- Selection: Rank-based selection is used to preserve diversity.
+
+- Crossover: Single-point crossover on both the worker/job list and the job priority list. Invalid priority lists are repaired post-crossover.
+
+- Mutation: Swaps elements in the worker/job list and job priority list. Validation and repair are applied as needed.
+
+## Core Data Structures
+- A custom directed acyclic graph structure is used to represent and traverse task dependencies efficiently.
+- The input of problem was stored in hashmaps/dictionaries optimized for fast access.
+- The chromosome representation is a dictionary with a list of pairs, job priority list and cached fitness function result.
+
+## How to Use
+- Option 1: Run the program using the executable inside the dist/main folder.
+
+- Option 2: From Source python main.py
+
+### Input
+Available input examples are stored in dist/main
+- Projects are defined via CSV files.
+- The tool includes a basic CSV editor for modifying tasks, workers, durations, and constraints.
+### Output
+The resulting schedule is visualized using a Gantt chart.
+## About This Project
+This project was developed as my individual final-year project in a BSc Artificial Intelligence and Computer Science degree. It was designed and implemented from scratch and only used Python and PySide6(for gui) as tech stack, focusing on solving a real-world variant of an NP-hard scheduling problem using evolutionary computing principles. I chose a genetic algorithm to solve the scheduling problem because it wasn’t covered in my coursework, providing an opportunity to learn and explore evolutionary algorithms. This allowed me to expand my knowledge in optimization techniques and problem-solving.
